@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adom Hostel — Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#132239;
+    --paper:#FFFFFF;
+    --paper-2:#F5F4F0;
+    --line:#E4E2DA;
+    --clay:#8B3A2E;
+    --gold:#8A6F3D;
+    --pine:#3F5D45;
+    --pine-soft:#E7EBE3;
+    --clay-soft:#F1E3DE;
+    --gold-soft:#F0E9D6;
+    --card:#FFFFFF;
+    --accent:#12141A;
+    --accent-2:#1F3A5F;
+    --shadow: 0 1px 0 rgba(19,34,57,0.05);
+  }
+  /* Deliberately no prefers-color-scheme override: the site always shows this
+     light, off-white palette regardless of the visitor's system theme. */
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+
+  /* ---- motion primitives ---- */
+  .reveal{opacity:0; transform:translateY(18px); transition:opacity .7s cubic-bezier(.16,.84,.24,1), transform .7s cubic-bezier(.16,.84,.24,1);}
+  .reveal.in-view{opacity:1; transform:translateY(0);}
+  .room-grid .reveal:nth-child(1),.kpi-grid .reveal:nth-child(1){transition-delay:0ms;}
+  .room-grid .reveal:nth-child(2),.kpi-grid .reveal:nth-child(2){transition-delay:70ms;}
+  .room-grid .reveal:nth-child(3),.kpi-grid .reveal:nth-child(3){transition-delay:140ms;}
+  .room-grid .reveal:nth-child(4),.kpi-grid .reveal:nth-child(4){transition-delay:210ms;}
+  .room-grid .reveal:nth-child(5),.kpi-grid .reveal:nth-child(5){transition-delay:280ms;}
+  .room-grid .reveal:nth-child(6),.kpi-grid .reveal:nth-child(6){transition-delay:350ms;}
+
+  #page-content{opacity:0; transform:translateY(10px);}
+  #page-content.page-fade-in{opacity:1; transform:translateY(0); transition:opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1);}
+
+  @keyframes countUp{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  .scroll-progress{
+    position:fixed; top:0; left:0; height:2px; width:0%; background:var(--clay);
+    z-index:60; transition:width .12s linear; opacity:.8;
+  }
+
+  .reveal-scale{opacity:0; transform:translateY(14px) scale(.96); transition:opacity .7s cubic-bezier(.16,.84,.24,1), transform .7s cubic-bezier(.16,.84,.24,1);}
+  .reveal-scale.in-view{opacity:1; transform:translateY(0) scale(1);}
+
+  @keyframes modalBgIn{from{opacity:0;} to{opacity:1;}}
+  @keyframes modalIn{from{opacity:0; transform:scale(.94) translateY(14px);} to{opacity:1; transform:scale(1) translateY(0);}}
+  .modal-bg{animation:modalBgIn .25s ease;}
+  .modal{animation:modalIn .4s cubic-bezier(.16,1,.3,1);}
+
+  .room-card{ will-change:transform; }
+  .hero-panel{ will-change:transform, opacity; }
+  h1,h2,h3,h4{
+    font-family:'Newsreader', Georgia, serif;
+    font-weight:600;
+    line-height:1.15;
+    margin:0 0 .4em 0;
+    letter-spacing:-0.01em;
+  }
+  p{line-height:1.55; margin:0 0 1em 0;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  ::selection{background:var(--gold-soft);}
+
+  /* ---- Top bar ---- */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    background:var(--paper); border-bottom:1px solid transparent;
+    transition:box-shadow .35s ease, backdrop-filter .35s ease, border-color .35s ease, background .35s ease;
+  }
+  .topbar.scrolled{
+    border-bottom-color:var(--line);
+    box-shadow:0 10px 30px rgba(10,12,14,.05);
+    backdrop-filter:saturate(160%) blur(10px);
+    background:color-mix(in srgb, var(--paper) 88%, transparent);
+  }
+  .topbar-inner{
+    max-width:1080px; margin:0 auto; padding:16px 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .brand{display:flex; align-items:baseline; gap:10px; cursor:pointer;}
+  .brand-name{font-family:'Newsreader',serif; font-size:1.25rem; font-weight:600;}
+  .brand-sub{font-size:.72rem; color:var(--clay); letter-spacing:.03em;}
+  .nav{display:flex; gap:22px; align-items:center;}
+  .nav a{font-size:.92rem; text-decoration:none; cursor:pointer; color:var(--ink); opacity:.75; padding:4px 0; position:relative; transition:opacity .2s ease;}
+  .nav a::after{content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px; background:var(--accent); transform:scaleX(0); transform-origin:left; transition:transform .3s cubic-bezier(.16,1,.3,1);}
+  .nav a:hover{opacity:1;}
+  .nav a:hover::after, .nav a.active::after{transform:scaleX(1);}
+  .nav a.active{opacity:1;}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:11px 20px; border-radius:7px; border:1px solid transparent;
+    font-size:.92rem; font-weight:600; cursor:pointer; text-decoration:none;
+    transition:transform .18s cubic-bezier(.16,1,.3,1), opacity .18s ease, box-shadow .25s ease, background .2s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--accent); color:var(--paper); border-radius:999px;}
+  .btn-primary:hover{opacity:.9; transform:translateY(-1px); box-shadow:0 10px 22px rgba(15,17,20,.22);}
+  .btn-ghost{background:transparent; color:var(--ink); border-color:var(--line);}
+  .btn-ghost:hover{background:var(--paper-2); transform:translateY(-1px);}
+  .btn-pine{background:var(--pine); color:#fff;}
+  .btn-pine:hover{opacity:.94; transform:translateY(-1px); box-shadow:0 10px 22px rgba(20,40,30,.16);}
+  .btn-sm{padding:7px 13px; font-size:.82rem;}
+  .btn-danger{background:transparent; color:var(--clay); border-color:var(--clay-soft);}
+  .btn[disabled]{opacity:.45; cursor:not-allowed; transform:none !important; box-shadow:none !important;}
+  .btn-block{width:100%;}
+
+  /* ---- Hero ---- */
+  .hero{padding:22px 0 56px;}
+  .hero-panel{
+    border-radius:28px; padding:56px 48px; position:relative; overflow:hidden;
+    background:linear-gradient(135deg, #EFE6D2 0%, #E4DCC6 45%, #DCE3D6 100%);
+  }
+  .hero-grid{display:block; max-width:600px; position:relative; z-index:1;}
+  .eyebrow{font-size:.78rem; color:var(--accent-2); margin-bottom:14px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;}
+  .hero h1{font-size:clamp(2.2rem, 4.2vw, 3.3rem); color:var(--ink);}
+  .hero h1 em{font-family:'Newsreader',serif; font-style:italic; font-weight:500;}
+  .hero p.lead{font-size:1.08rem; max-width:44ch; color:var(--ink); opacity:.72;}
+  .hero-actions{display:flex; gap:12px; margin-top:22px; flex-wrap:wrap; align-items:center;}
+  .search-pill{
+    display:flex; align-items:center; gap:0; background:var(--card); border-radius:999px;
+    padding:6px; margin-top:26px; max-width:440px; box-shadow:0 14px 34px rgba(19,34,57,.10);
+  }
+  .search-pill .sp-field{flex:1; padding:10px 18px; font-size:.92rem; color:var(--ink); opacity:.8;}
+  .search-pill button{
+    border:none; border-radius:999px; background:var(--accent); color:var(--paper);
+    padding:12px 22px; font-size:.88rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px;
+    transition:transform .18s cubic-bezier(.16,1,.3,1), opacity .18s ease;
+  }
+  .search-pill button:hover{opacity:.9; transform:translateY(-1px);}
+  .search-pill button svg{width:15px; height:15px;}
+  .stat-row{display:flex; gap:40px; margin-top:34px; flex-wrap:wrap; padding-top:28px; border-top:1px solid var(--line);}
+  .stat b{font-family:'Newsreader',serif; font-size:1.6rem; display:block;}
+  .stat span{font-size:.78rem; opacity:.65;}
+
+  /* ---- sections ---- */
+  section{padding:56px 0;}
+  section.alt{background:var(--paper-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .section-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px; gap:16px; flex-wrap:wrap;}
+  .section-head h2{font-size:1.7rem;}
+  .section-head p{margin:0; opacity:.7; max-width:44ch;}
+
+  .room-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:20px;}
+  .room-carousel{display:flex; gap:20px; overflow-x:auto; scroll-snap-type:x mandatory; padding:2px 2px 10px; scrollbar-width:none;}
+  .room-carousel::-webkit-scrollbar{display:none;}
+  .room-carousel .room-card{min-width:270px; max-width:270px; flex:0 0 auto; scroll-snap-align:start;}
+  .carousel-nav{display:flex; gap:10px;}
+  .carousel-nav button{
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--card);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink);
+    transition:transform .18s cubic-bezier(.16,1,.3,1), background .2s ease, border-color .2s ease;
+  }
+  .carousel-nav button:hover{transform:translateY(-2px);}
+  .carousel-nav button.primary{background:var(--accent); border-color:var(--accent); color:var(--paper);}
+  .carousel-nav svg{width:16px; height:16px;}
+  .room-card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden;
+    display:flex; flex-direction:column; cursor:pointer; transition:box-shadow .35s cubic-bezier(.16,1,.3,1), transform .35s cubic-bezier(.16,1,.3,1), border-color .35s ease;
+  }
+  .room-card:hover{transform:translateY(-4px); box-shadow:0 20px 40px rgba(20,25,30,.10); border-color:transparent;}
+  .room-photo{aspect-ratio:16/10; background:var(--paper-2); position:relative; overflow:hidden;}
+  .room-photo img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s cubic-bezier(.16,1,.3,1);}
+  .room-card:hover .room-photo img{transform:scale(1.06);}
+  .room-photo .ph-fallback{
+    width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--line);
+    background:linear-gradient(120deg, var(--paper-2) 0%, var(--card) 45%, var(--paper-2) 100%);
+    background-size:220% 100%;
+    animation:phShift 7s ease-in-out infinite;
+  }
+  .ph-letter{
+    font-family:'Newsreader',serif; font-weight:600; font-size:2.8rem; color:var(--line);
+    user-select:none;
+  }
+  @keyframes phShift{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
+  .badge{
+    position:absolute; top:10px; left:10px; padding:4px 10px; border-radius:20px;
+    font-size:.72rem; font-weight:600; background:rgba(255,255,255,.92); color:var(--pine);
+  }
+  .badge.occ{color:var(--clay);}
+  .room-body{padding:16px 16px 18px; display:flex; flex-direction:column; gap:8px; flex:1;}
+  .room-body h3{font-size:1.08rem;}
+  .room-meta{font-size:.82rem; opacity:.65;}
+  .room-price{margin-top:auto; display:flex; align-items:baseline; justify-content:space-between; padding-top:10px; border-top:1px dashed var(--line);}
+  .room-price b{font-family:'Newsreader',serif; font-size:1.3rem;}
+  .room-price span{font-size:.78rem; opacity:.6;}
+
+  /* map */
+  .map-grid{display:grid; grid-template-columns:1.1fr .9fr; gap:28px;}
+  .map-visual{
+    border-radius:12px; border:1px solid var(--line); overflow:hidden; background:var(--card);
+    aspect-ratio:4/3; position:relative;
+  }
+  .map-visual svg{width:100%; height:100%;}
+  .map-side{display:flex; flex-direction:column; gap:16px;}
+  .info-line{display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+  .info-line:last-child{border-bottom:none;}
+  .info-line .ico{width:20px; flex-shrink:0; opacity:.6; margin-top:2px;}
+  .info-line b{display:block; font-size:.9rem;}
+  .info-line span{font-size:.85rem; opacity:.7;}
+  .landmark-list{display:flex; flex-direction:column; gap:0;}
+
+  /* Cards / form */
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:.82rem; font-weight:600; margin-bottom:6px; opacity:.8;}
+  .field input, .field select, .field textarea{
+    width:100%; padding:11px 12px; border-radius:7px; border:1px solid var(--line);
+    background:var(--paper); color:var(--ink); font-family:inherit; font-size:.94rem;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--gold); outline-offset:1px;}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .hint{font-size:.78rem; opacity:.6; margin-top:4px;}
+
+  .booking-layout{display:grid; grid-template-columns:1.3fr .9fr; gap:28px; align-items:start;}
+  .summary-card{position:sticky; top:90px;}
+  .summary-line{display:flex; justify-content:space-between; font-size:.9rem; padding:8px 0; border-bottom:1px solid var(--line);}
+  .summary-line.total{border-bottom:none; padding-top:14px; font-size:1.1rem; font-family:'Newsreader',serif;}
+
+  .stepper{display:flex; align-items:center; gap:0; margin-bottom:28px; flex-wrap:wrap;}
+  .step{display:flex; align-items:center; gap:10px; flex:1; min-width:140px;}
+  .step-dot{
+    width:28px; height:28px; border-radius:50%; border:2px solid var(--line); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:.78rem; font-weight:700; background:var(--card);
+  }
+  .step.done .step-dot{background:var(--pine); border-color:var(--pine); color:#fff;}
+  .step.current .step-dot{border-color:var(--clay); color:var(--clay);}
+  .step-label{font-size:.82rem; font-weight:600;}
+  .step.done .step-label{color:var(--pine);}
+  .step-line{flex:1; height:2px; background:var(--line); margin:0 4px;}
+  .step-line.done{background:var(--pine);}
+
+  .status-pill{display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:.78rem; font-weight:600;}
+  .status-pending{background:var(--gold-soft); color:var(--gold);}
+  .status-payment_uploaded{background:var(--gold-soft); color:var(--gold);}
+  .status-approved{background:var(--pine-soft); color:var(--pine);}
+  .status-confirmed{background:var(--pine-soft); color:var(--pine);}
+  .status-rejected{background:var(--clay-soft); color:var(--clay);}
+
+  .upload-box{
+    border:1.5px dashed var(--line); border-radius:10px; padding:26px; text-align:center; cursor:pointer;
+    background:var(--paper);
+  }
+  .upload-box:hover{border-color:var(--gold);}
+  .upload-box img{max-width:100%; max-height:180px; border-radius:6px; margin-top:10px;}
+
+  table{width:100%; border-collapse:collapse; font-size:.88rem;}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  th{font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; opacity:.55; font-weight:600;}
+  tr:hover td{background:var(--paper-2);}
+  .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--card);}
+  .table-wrap table{margin:0;}
+  .table-wrap .table-wrap{border:none;}
+
+  .site-footer{background:var(--ink); color:var(--paper); border-radius:28px; margin:0 24px 24px; overflow:hidden; position:relative;}
+  .site-footer-top{max-width:1080px; margin:0 auto; padding:52px 24px 30px; display:flex; justify-content:space-between; gap:40px; flex-wrap:wrap;}
+  .site-footer .f-brand{font-family:'Newsreader',serif; font-size:1.3rem; font-weight:600; margin-bottom:8px;}
+  .site-footer .f-meta{font-size:.8rem; opacity:.6; margin-bottom:20px;}
+  .site-footer .f-social{display:flex; gap:14px;}
+  .site-footer .f-social a{
+    width:34px; height:34px; border-radius:50%; border:1px solid rgba(247,242,231,.25);
+    display:flex; align-items:center; justify-content:center; color:var(--paper); opacity:.85; cursor:pointer;
+    transition:background .2s ease, transform .2s ease;
+  }
+  .site-footer .f-social a:hover{background:rgba(247,242,231,.12); transform:translateY(-2px);}
+  .site-footer .f-social svg{width:15px; height:15px;}
+  .f-cols{display:flex; gap:60px; flex-wrap:wrap;}
+  .f-col h4{font-size:.85rem; margin-bottom:14px; opacity:.9;}
+  .f-col a{display:block; font-size:.86rem; opacity:.62; margin-bottom:10px; cursor:pointer; text-decoration:none; color:inherit; transition:opacity .2s ease;}
+  .f-col a:hover{opacity:1;}
+  .f-wordmark{
+    font-family:'Newsreader',serif; font-weight:600; font-size:clamp(3.5rem, 13vw, 9rem);
+    color:rgba(247,242,231,.06); line-height:1; white-space:nowrap; overflow:hidden;
+    padding:0 24px 10px; letter-spacing:-0.02em;
+  }
+
+  /* Manager shell */
+  .mgr-shell{display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - 65px);}
+  .mgr-side{border-right:1px solid var(--line); padding:22px 14px; background:var(--paper-2);}
+  .mgr-side a{
+    display:block; padding:9px 12px; border-radius:7px; font-size:.88rem; text-decoration:none; color:var(--ink);
+    opacity:.72; margin-bottom:2px; cursor:pointer;
+  }
+  .mgr-side a:hover{background:var(--paper);}
+  .mgr-side a.active{opacity:1; background:var(--card); font-weight:600; box-shadow:var(--shadow);}
+  .mgr-main{padding:30px 34px; max-width:1000px;}
+  .mgr-main h2{font-size:1.5rem; margin-bottom:4px;}
+  .mgr-sub{opacity:.6; font-size:.9rem; margin-bottom:26px;}
+
+  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:30px;}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; transition:transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease;}
+  .kpi:hover{transform:translateY(-3px); box-shadow:0 14px 30px rgba(20,25,30,.08);}
+  .kpi b{font-family:'Newsreader',serif; font-size:1.9rem; display:block;}
+  .kpi span{font-size:.8rem; opacity:.62;}
+  .kpi.flag{border-color:var(--clay); background:var(--clay-soft);}
+
+  .pill-tab{display:inline-flex; gap:6px; padding:4px; background:var(--paper-2); border-radius:9px; margin-bottom:18px;}
+  .pill-tab button{padding:7px 14px; border-radius:6px; border:none; background:transparent; font-size:.84rem; font-weight:600; cursor:pointer; color:var(--ink); opacity:.6;}
+  .pill-tab button.active{background:var(--card); opacity:1; box-shadow:var(--shadow);}
+
+  .filter-row{display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;}
+  .filter-row select, .filter-row input{padding:8px 10px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:.84rem;}
+
+  .modal-bg{position:fixed; inset:0; background:rgba(20,20,18,.5); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;}
+  .modal{background:var(--card); border-radius:14px; padding:26px; max-width:520px; width:100%; max-height:88vh; overflow-y:auto;}
+  .modal h3{margin-bottom:14px;}
+  .modal-close{float:right; cursor:pointer; opacity:.5; font-size:1.3rem; line-height:1;}
+
+  .sms-log{display:flex; flex-direction:column; gap:10px; max-height:340px; overflow-y:auto;}
+  .sms-item{background:var(--pine-soft); border-radius:10px; padding:12px 14px; font-size:.84rem;}
+  .sms-item b{display:block; font-size:.76rem; color:var(--pine); margin-bottom:3px; font-family:'IBM Plex Mono',monospace;}
+
+  .receipt{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:30px; max-width:520px;}
+  .receipt-head{display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:16px;}
+  .receipt-row{display:flex; justify-content:space-between; padding:6px 0; font-size:.9rem;}
+  .receipt-total{border-top:1px solid var(--line); margin-top:10px; padding-top:12px; display:flex; justify-content:space-between; font-family:'Newsreader',serif; font-size:1.25rem;}
+
+  .empty{padding:40px 20px; text-align:center; opacity:.6; font-size:.9rem;}
+  .login-wrap{max-width:380px; margin:80px auto; padding:0 20px;}
+  .badge-flag{background:var(--clay); color:#fff; border-radius:10px; padding:1px 7px; font-size:.7rem; margin-left:6px;}
+
+  @media (max-width: 860px){
+    .map-grid{grid-template-columns:1fr;}
+    .booking-layout{grid-template-columns:1fr;}
+    .field-row{grid-template-columns:1fr;}
+    .mgr-shell{grid-template-columns:1fr;}
+    .mgr-side{display:flex; overflow-x:auto; border-right:none; border-bottom:1px solid var(--line); gap:4px;}
+    .mgr-side a{white-space:nowrap;}
+    .nav{display:none;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------------------------------------------------
+     DATA LAYER
+  --------------------------------------------------------- */
+  const STORE_KEY = "adom_hostel_state_v2";
+
+  function uid(prefix){ return prefix + "_" + Math.random().toString(36).slice(2,9); }
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  function addDays(iso, n){ const d = new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+  function daysBetween(a,b){ return Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/86400000); }
+  function fmtDate(iso){ if(!iso) return "—"; const d = new Date(iso+"T00:00:00"); return d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}); }
+  function money(n){ return "GHS " + Number(n||0).toLocaleString("en-GH",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+  function buildRooms(){
+    // Capacity -> price/month (GHS) and a short bed-type label.
+    const tiers = {
+      1: { price: 1800, bedType: "1 in a room · private ensuite" },
+      2: { price: 1150, bedType: "2 in a room · shared twin" },
+      4: { price: 650,  bedType: "4 in a room · shared bunks" }
+    };
+    function describe(floorLabel, no, cap){
+      if(cap === 1){
+        return `A private room on the ${floorLabel.toLowerCase()}. One resident per room, with an ensuite bathroom, wardrobe, and a reading desk.`;
+      }
+      if(cap === 2){
+        return `A shared room on the ${floorLabel.toLowerCase()}, two residents per room, each with their own bed, wardrobe space, and a shared bathroom down the hall.`;
+      }
+      return `A shared room on the ${floorLabel.toLowerCase()}, four residents per room in bunk beds, with a wardrobe per bed and a shared reading table.`;
+    }
+    const floors = [
+      { label:"Ground Floor", rooms:[
+        {no:"G1",cap:4}, {no:"G2",cap:4}, {no:"G3",cap:2}, {no:"G4",cap:2}, {no:"G5",cap:1}
+      ]},
+      { label:"1st Floor", rooms:[
+        {no:"101",cap:4}, {no:"102",cap:4}, {no:"103",cap:2}, {no:"104",cap:2}, {no:"105",cap:1}, {no:"106",cap:1}
+      ]},
+      { label:"2nd Floor", rooms:[
+        {no:"201",cap:4}, {no:"202",cap:4}, {no:"203",cap:2}, {no:"204",cap:2}, {no:"205",cap:1}, {no:"206",cap:4}
+      ]},
+      { label:"3rd Floor", rooms:[
+        {no:"301",cap:2}, {no:"302",cap:2}, {no:"303",cap:1}, {no:"304",cap:1}, {no:"305",cap:4}
+      ]}
+    ];
+    const rooms = [];
+    let i = 0;
+    floors.forEach(floor=>{
+      floor.rooms.forEach(r=>{
+        const tier = tiers[r.cap];
+        i++;
+        rooms.push({
+          id: uid("room"),
+          name: `${floor.label} — Room ${r.no}`,
+          floor: floor.label,
+          roomNo: r.no,
+          bedType: tier.bedType,
+          price: tier.price,
+          period: "month",
+          maxOccupants: r.cap,
+          status: (i % 4 === 0) ? "occupied" : "available",
+          description: describe(floor.label, r.no, r.cap),
+          photos: []
+        });
+      });
+    });
+    return rooms;
+  }
+
+  function seedData(){
+    const today = todayISO();
+    const rooms = buildRooms();
+    const firstOccupied = rooms.find(r=>r.status==="occupied") || rooms[0];
+
+    const bookings = [
+      {
+        id: uid("bk"), roomId: firstOccupied.id, guestName:"Efua Mensah", phone:"0244 000 111", email:"efua@example.com",
+        checkIn: addDays(today,-10), checkOut: addDays(today,4), nights: 14, total: firstOccupied.price, period:"month",
+        status:"confirmed", receipt:null, notes:"", createdAt: addDays(today,-11), approvedAt: addDays(today,-10)
+      }
+    ];
+
+    return {
+      info:{
+        name:"Adom Hostel",
+        tagline:"Student housing, five minutes from Legon Main Gate.",
+        address:"12 Adenta Link Road, near Legon Main Gate, Accra, Ghana",
+        landmarks:[
+          {name:"Legon Main Gate", distance:"5 min walk"},
+          {name:"Madina Market", distance:"10 min drive"},
+          {name:"Legon Interchange", distance:"7 min drive"},
+          {name:"Trotro station (37)", distance:"3 min walk"}
+        ],
+        mapsQuery:"Legon Main Gate, Accra, Ghana",
+        showMap:true, showLandmarks:true, showAddress:true,
+        checkoutReminderDays:2
+      },
+      rooms, bookings, smsLog:[], customerNotes:{}
+    };
+  }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    const seeded = seedData();
+    save(seeded);
+    return seeded;
+  }
+  function save(state){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){ console.error("storage failed", e); }
+  }
+
+  let state = load();
+  function persist(){ save(state); }
+
+  function sendSMS(to, body){
+    state.smsLog.unshift({ id: uid("sms"), to, body, at: new Date().toISOString() });
+    if(state.smsLog.length > 60) state.smsLog.length = 60;
+  }
+
+  /* ---------------------------------------------------------
+     ROUTER
+  --------------------------------------------------------- */
+  let route = { portal:"guest", page:"home", params:{} };
+  let bookingDraft = {}; // in-progress booking selection
+  let managerAuthed = false;
+
+  function go(page, params){
+    route.page = page;
+    route.params = params || {};
+    window.scrollTo(0,0);
+    render();
+  }
+  function goPortal(portal){
+    route.portal = portal;
+    route.page = portal === "manager" ? (managerAuthed ? "dashboard" : "login") : "home";
+    route.params = {};
+    window.scrollTo(0,0);
+    render();
+  }
+
+  /* ---------------------------------------------------------
+     SHARED UI PIECES
+  --------------------------------------------------------- */
+  function icon(name){
+    const icons = {
+      pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg>',
+      route: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 19l5-14 5 14M8.5 12h5"/></svg>',
+      landmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 21h16M6 21V9l6-5 6 5v12M10 21v-6h4v6"/></svg>',
+      clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+      bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18v2M21 18v2M3 12V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M9 12h6"/></svg>',
+      arrowLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg>',
+      arrowRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"/></svg>',
+      search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+    };
+    return icons[name] || "";
+  }
+
+  function statusLabel(s){
+    return {pending:"Pending", payment_uploaded:"Payment received", approved:"Approved", confirmed:"Confirmed", rejected:"Rejected"}[s] || s;
+  }
+
+  function roomById(id){ return state.rooms.find(r => r.id === id); }
+
+  function renderFooter(){
+    const socials = {
+      twitter:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 5.9c-.7.3-1.5.5-2.3.6.8-.5 1.4-1.3 1.7-2.3-.8.5-1.7.8-2.6 1a4.1 4.1 0 0 0-7 3.7A11.6 11.6 0 0 1 3.4 4.6a4.1 4.1 0 0 0 1.3 5.5c-.7 0-1.3-.2-1.9-.5v.1c0 2 1.4 3.6 3.3 4a4.1 4.1 0 0 1-1.9.1 4.1 4.1 0 0 0 3.8 2.9A8.3 8.3 0 0 1 2 18.4a11.6 11.6 0 0 0 6.3 1.9c7.5 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.2z"/></svg>',
+      facebook:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.4c0-.9.2-1.5 1.5-1.5h1.6V4.3C16.3 4.2 15.3 4 14.2 4c-2.4 0-4 1.5-4 4.1v2.4H7.7v3h2.5V21h3.3z"/></svg>',
+      linkedin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.9 8.4H3.6V20h3.3V8.4zM5.3 3.5a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM20.4 20h-3.3v-6.1c0-1.4-.5-2.4-1.8-2.4-1 0-1.6.7-1.9 1.3-.1.2-.1.6-.1.9V20H10s.1-10.6 0-11.7h3.3v1.7c.4-.7 1.2-1.7 3-1.7 2.2 0 3.9 1.4 3.9 4.5V20z"/></svg>',
+      instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17.2" cy="6.8" r="1"/></svg>'
+    };
+    return `
+    <div class="site-footer">
+      <div class="site-footer-top">
+        <div>
+          <div class="f-brand">${state.info.name}</div>
+          <div class="f-meta">© ${new Date().getFullYear()} ${state.info.name}. All rights reserved.</div>
+          <div class="f-social">
+            ${Object.values(socials).map(s=>`<a>${s}</a>`).join("")}
+          </div>
+        </div>
+        <div class="f-cols">
+          <div class="f-col">
+            <h4>Explore</h4>
+            <a onclick="App.go('home')">Home</a>
+            <a onclick="App.go('rooms')">Rooms</a>
+            <a onclick="App.go('location')">Location</a>
+            <a onclick="App.go('status')">Track my booking</a>
+          </div>
+          <div class="f-col">
+            <h4>Hostel</h4>
+            <a onclick="App.goPortal('manager')">Manager login</a>
+            <a>${state.info.address}</a>
+          </div>
+        </div>
+      </div>
+      <div class="f-wordmark">${state.info.name}</div>
+    </div>`;
+  }
+
+  function roomPlaceholder(r){
+    const letter = (r && r.name ? r.name.trim()[0] : "?").toUpperCase();
+    return `<div class="ph-fallback"><span class="ph-letter">${letter}</span></div>`;
+  }
+
+  function topbar(){
+    const isManager = route.portal === "manager";
+    const links = isManager ? [] : [
+      ["home","Home"], ["rooms","Rooms"], ["location","Location"], ["status","Track my booking"]
+    ];
+    return `
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="brand" onclick="App.goPortal('guest')">
+          <div>
+            <div class="brand-name">${state.info.name}</div>
+            <div class="brand-sub">${isManager ? "MANAGER PORTAL" : "Book a room online"}</div>
+          </div>
+        </div>
+        <div class="nav">
+          ${links.map(([p,l]) => `<a class="${route.page===p?'active':''}" onclick="App.go('${p}')">${l}</a>`).join("")}
+          ${!isManager ? `<a onclick="App.go('rooms')" aria-label="Search" style="opacity:.8;">${icon('search')}</a>` : ""}
+        </div>
+        <div style="display:flex; gap:14px; align-items:center;">
+          ${isManager
+            ? `<button class="btn btn-ghost btn-sm" onclick="App.logoutManager()">Sign out</button>`
+            : `<a onclick="App.goPortal('manager')" style="cursor:pointer; font-size:.88rem; opacity:.75;">Manager login</a>
+               <button class="btn btn-primary btn-sm" onclick="App.go('rooms')">Book now</button>`
+          }
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* ---------------------------------------------------------
+     GUEST: HOME
+  --------------------------------------------------------- */
+  function pageHome(){
+    const featured = state.rooms.slice(0,3);
+    const occupiedCount = state.rooms.filter(r=>r.status==="occupied").length;
+    return `
+    <section class="hero">
+      <div class="wrap">
+      <div class="hero-panel">
+      <div class="hero-grid">
+        <div class="eyebrow reveal" style="transition-delay:0ms;">Welcome to ${state.info.name}</div>
+        <h1 class="reveal" style="transition-delay:60ms;">Find your room. <em>Move in with ease.</em></h1>
+        <p class="lead reveal" style="transition-delay:140ms;">${state.info.name} offers monthly and yearly rooms a short walk from campus, with online booking, mobile money payment, and a receipt sent straight to your phone.</p>
+        <div class="hero-actions reveal" style="transition-delay:220ms;">
+          <div class="search-pill">
+            <div class="sp-field">${state.info.address.split(',').slice(-2).join(',').trim() || 'Accra, Ghana'}</div>
+            <button onclick="App.go('rooms')">Browse rooms ${icon('route')}</button>
+          </div>
+        </div>
+        <div class="hero-actions reveal" style="transition-delay:260ms; margin-top:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="App.go('location')">See location</button>
+        </div>
+        <div class="stat-row reveal" style="transition-delay:300ms; border-top:1px solid rgba(19,34,57,.12);">
+          <div class="stat"><b data-count="${state.rooms.length}">0</b><span>Room types</span></div>
+          <div class="stat"><b>${occupiedCount}/${state.rooms.length}</b><span>Currently occupied</span></div>
+          <div class="stat"><b>5 min</b><span>To Legon Main Gate</span></div>
+        </div>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2>Featured rooms</h2>
+            <p>A mix of shared and private rooms, priced monthly or yearly depending on the room.</p>
+          </div>
+          <div class="carousel-nav">
+            <button onclick="App.scrollCarousel(-1)" aria-label="Previous">${icon('arrowLeft')}</button>
+            <button class="primary" onclick="App.scrollCarousel(1)" aria-label="Next">${icon('arrowRight')}</button>
+          </div>
+        </div>
+        <div class="room-carousel" id="featured-carousel">
+          ${featured.map(r => roomCard(r)).join("")}
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="App.go('rooms')">View all rooms</button>
+      </div>
+    </section>
+
+    <section class="alt">
+      <div class="wrap map-grid">
+        ${locationBlock(true)}
+      </div>
+    </section>
+    `;
+  }
+
+  function roomCard(r){
+    const available = r.status === "available";
+    return `
+    <div class="room-card reveal" onclick="App.go('room',{id:'${r.id}'})">
+      <div class="room-photo">
+        ${r.photos && r.photos[0] ? `<img src="${r.photos[0]}">` : roomPlaceholder(r)}
+        <div class="badge ${available?'':'occ'}">${available ? 'Available' : 'Occupied'}</div>
+      </div>
+      <div class="room-body">
+        <h3>${r.roomNo ? `Room ${r.roomNo}` : r.name}</h3>
+        <div class="room-meta">${r.floor ? r.floor + " · " : ""}${r.bedType} · sleeps ${r.maxOccupants}</div>
+        <div class="room-price">
+          <b>${money(r.price)}</b>
+          <span>per ${r.period}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* ---------------------------------------------------------
+     GUEST: LOCATION
+  --------------------------------------------------------- */
+  function locationBlock(compact){
+    const q = encodeURIComponent(state.info.mapsQuery || state.info.address);
+    return `
+      <div class="map-visual">
+        <iframe
+          src="https://www.google.com/maps?q=${q}&output=embed"
+          width="100%" height="100%" style="border:0; display:block;"
+          loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+          title="Map showing ${state.info.name}">
+        </iframe>
+      </div>
+      <div class="map-side">
+        <div>
+          <h3 style="margin-bottom:6px;">Find us</h3>
+          ${state.info.showAddress ? `<p style="opacity:.75; margin-bottom:14px;">${state.info.address}</p>` : ""}
+          <a class="btn btn-pine btn-sm" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">${icon('route')} Get directions</a>
+        </div>
+        ${state.info.showLandmarks ? `
+        <div class="landmark-list">
+          ${state.info.landmarks.map(l => `
+            <div class="info-line">
+              <div class="ico">${icon('landmark')}</div>
+              <div><b>${l.name}</b><span>${l.distance} from the hostel</span></div>
+            </div>`).join("")}
+        </div>` : ""}
+        ${compact ? `<button class="btn btn-ghost btn-sm" onclick="App.go('location')" style="align-self:flex-start;">Full location page</button>` : ""}
+      </div>
+    `;
+  }
+
+  function pageLocation(){
+    return `
+    <section>
+      <div class="wrap">
+        <div class="section-head"><div><h2>Location &amp; getting here</h2><p>Everything you need to find ${state.info.name} before you book.</p></div></div>
+        <div class="map-grid">${locationBlock(false)}</div>
+      </div>
+    </section>`;
+  }
+
+  /* ---------------------------------------------------------
+     GUEST: ROOMS LIST + DETAIL
+  --------------------------------------------------------- */
+  function pageRooms(){
+    const byFloor = {};
+    const floorOrder = [];
+    state.rooms.forEach(r=>{
+      const key = r.floor || "Rooms";
+      if(!byFloor[key]){ byFloor[key] = []; floorOrder.push(key); }
+      byFloor[key].push(r);
+    });
+    return `
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <div><h2>All rooms</h2><p>${state.rooms.length} rooms across ${floorOrder.length} floors. Prices are shown per month unless noted.</p></div>
+        </div>
+        ${floorOrder.map(floor => `
+          <div style="margin-bottom:40px;">
+            <h3 style="font-size:1.15rem; margin-bottom:16px; opacity:.85;">${floor}</h3>
+            <div class="room-grid">${byFloor[floor].map(roomCard).join("")}</div>
+          </div>
+        `).join("")}
+      </div>
+    </section>`;
+  }
+
+  function pageRoomDetail(id){
+    const r = roomById(id);
+    if(!r) return `<div class="wrap" style="padding:60px 0;">Room not found. <a onclick="App.go('rooms')">Back to rooms</a></div>`;
+    const available = r.status === "available";
+    return `
+    <section>
+      <div class="wrap">
+        <a onclick="App.go('rooms')" style="cursor:pointer; font-size:.85rem; opacity:.7;">&larr; All rooms</a>
+        <div class="booking-layout" style="margin-top:18px;">
+          <div>
+            <div class="room-photo" style="border-radius:12px; border:1px solid var(--line); aspect-ratio:16/9;">
+              ${r.photos && r.photos[0] ? `<img src="${r.photos[0]}">` : roomPlaceholder(r)}
+            </div>
+            <h2 style="margin-top:20px;">${r.name}</h2>
+            <div class="room-meta" style="margin-bottom:10px;">${r.bedType} · sleeps up to ${r.maxOccupants}</div>
+            <p>${r.description}</p>
+            <div class="card" style="margin-top:16px;">
+              <b style="font-size:.85rem;">Availability calendar</b>
+              ${renderMiniCalendar(r)}
+            </div>
+          </div>
+          <div class="card summary-card">
+            <div class="badge ${available?'':'occ'}" style="position:static; display:inline-flex; margin-bottom:14px;">${available?'Available now':'Currently occupied'}</div>
+            <div class="summary-line total" style="border-top:none;"><span>Price</span><b>${money(r.price)} / ${r.period}</b></div>
+            <p class="hint" style="margin:10px 0 16px;">Choose your dates on the booking page — total is calculated automatically.</p>
+            <button class="btn btn-primary btn-block" ${available?'':'disabled'} onclick="App.startBooking('${r.id}')">${available? 'Book this room':'Not available'}</button>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function renderMiniCalendar(r){
+    // simple 14-day strip showing available/occupied for visual only
+    const today = todayISO();
+    let cells = "";
+    for(let i=0;i<14;i++){
+      const d = addDays(today, i);
+      const occ = r.status === "occupied" && i < 5;
+      cells += `<div title="${fmtDate(d)}" style="width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.68rem;background:${occ?'var(--clay-soft)':'var(--pine-soft)'};color:${occ?'var(--clay)':'var(--pine)'};">${new Date(d+'T00:00:00').getDate()}</div>`;
+    }
+    return `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">${cells}</div>
+      <div style="display:flex; gap:16px; margin-top:10px; font-size:.76rem; opacity:.7;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--pine-soft);border-radius:3px;margin-right:5px;"></span>Available</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--clay-soft);border-radius:3px;margin-right:5px;"></span>Occupied</span>
+      </div>`;
+  }
+
+  /* ---------------------------------------------------------
+     GUEST: BOOKING FLOW
+  --------------------------------------------------------- */
+  function startBooking(roomId){
+    bookingDraft = { roomId, checkIn:"", checkOut:"", name:"", phone:"", email:"" };
+    go("booking",{id:roomId});
+  }
+
+  function pageBooking(id){
+    const r = roomById(id || bookingDraft.roomId);
+    if(!r) return `<div class="wrap" style="padding:60px 0;">Pick a room first. <a onclick="App.go('rooms')">Browse rooms</a></div>`;
+    bookingDraft.roomId = r.id;
+    const ci = bookingDraft.checkIn, co = bookingDraft.checkOut;
+    let nights = 0, total = 0;
+    if(ci && co && co > ci){
+      nights = daysBetween(ci,co);
+      if(r.period === "night" || r.period === "month"){
+        total = r.period === "month" ? Math.max(1, Math.ceil(nights/30)) * r.price : nights * r.price;
+      } else if(r.period === "year"){
+        total = Math.max(1, Math.ceil(nights/365)) * r.price;
+      } else {
+        total = nights * r.price;
+      }
+    }
+    return `
+    <section>
+      <div class="wrap">
+        <div class="section-head"><div><h2>Book: ${r.name}</h2><p>${r.bedType} · ${money(r.price)} per ${r.period}</p></div></div>
+        <div class="booking-layout">
+          <div class="card">
+            <div class="field-row">
+              <div class="field">
+                <label>Check-in date</label>
+                <input type="date" value="${ci}" min="${todayISO()}" oninput="App.updateDraft('checkIn', this.value)">
+              </div>
+              <div class="field">
+                <label>Check-out date</label>
+                <input type="date" value="${co}" min="${ci || todayISO()}" oninput="App.updateDraft('checkOut', this.value)">
+              </div>
+            </div>
+            <div class="field"><label>Full name</label><input type="text" value="${bookingDraft.name||''}" oninput="App.updateDraft('name', this.value)" placeholder="e.g. Kwame Owusu"></div>
+            <div class="field-row">
+              <div class="field"><label>Phone number</label><input type="tel" value="${bookingDraft.phone||''}" oninput="App.updateDraft('phone', this.value)" placeholder="024 000 0000"></div>
+              <div class="field"><label>Email</label><input type="email" value="${bookingDraft.email||''}" oninput="App.updateDraft('email', this.value)" placeholder="you@example.com"></div>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="App.submitBooking()">Submit booking</button>
+          </div>
+          <div class="card summary-card">
+            <h3 style="font-size:1rem;">Booking summary</h3>
+            <div class="summary-line"><span>Room</span><span>${r.name}</span></div>
+            <div class="summary-line"><span>Check-in</span><span>${ci?fmtDate(ci):"—"}</span></div>
+            <div class="summary-line"><span>Check-out</span><span>${co?fmtDate(co):"—"}</span></div>
+            <div class="summary-line"><span>Length of stay</span><span>${nights? nights+" nights":"—"}</span></div>
+            <div class="summary-line total"><span>Total due</span><b>${total? money(total): "—"}</b></div>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function updateDraft(k,v){ bookingDraft[k]=v; render(); }
+
+  function submitBooking(){
+    const r = roomById(bookingDraft.roomId);
+    const {checkIn, checkOut, name, phone, email} = bookingDraft;
+    if(!checkIn || !checkOut || checkOut <= checkIn){ alert("Please choose a valid check-in and check-out date."); return; }
+    if(!name || !phone){ alert("Please enter your name and phone number."); return; }
+    const nights = daysBetween(checkIn, checkOut);
+    let total;
+    if(r.period === "month") total = Math.max(1, Math.ceil(nights/30)) * r.price;
+    else if(r.period === "year") total = Math.max(1, Math.ceil(nights/365)) * r.price;
+    else total = nights * r.price;
+
+    const booking = {
+      id: uid("bk"), roomId:r.id, guestName:name, phone, email,
+      checkIn, checkOut, nights, total, period:r.period,
+      status:"pending", receipt:null, notes:"", createdAt: todayISO(), approvedAt:null
+    };
+    state.bookings.unshift(booking);
+    sendSMS(phone, `Hi ${name}, your booking for ${r.name} (${fmtDate(checkIn)} - ${fmtDate(checkOut)}) has been received. Total due: ${money(total)}. Reply after payment to confirm.`);
+    persist();
+    go("payment",{id:booking.id});
+  }
+
+  /* ---------------------------------------------------------
+     GUEST: PAYMENT
+  --------------------------------------------------------- */
+  function pagePayment(bookingId){
+    const b = state.bookings.find(x=>x.id===bookingId);
+    if(!b) return `<div class="wrap" style="padding:60px 0;">Booking not found.</div>`;
+    const r = roomById(b.roomId);
+    return `
+    <section>
+      <div class="wrap" style="max-width:640px;">
+        ${stepper(b.status)}
+        <div class="card">
+          <h2 style="font-size:1.3rem;">Complete payment</h2>
+          <p style="opacity:.7;">Booking for <b>${r?r.name:'room'}</b>, ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}.</p>
+          <div class="summary-line total" style="border-top:1px solid var(--line); padding-top:14px;"><span>Amount due</span><b>${money(b.total)}</b></div>
+
+          ${b.status === "pending" ? `
+            <div style="margin:20px 0;">
+              <button class="btn btn-pine btn-block" onclick="App.payWithMomo('${b.id}')">Pay ${money(b.total)} with Mobile Money (Paystack)</button>
+              <p class="hint" style="margin-top:8px;">This demo simulates the Paystack Mobile Money checkout. A live version would redirect to Paystack to complete payment.</p>
+            </div>
+          ` : ""}
+
+          ${(b.status === "pending" || b.status === "payment_uploaded") && !b.receipt ? `
+            <div class="field" style="margin-top:10px;">
+              <label>Upload payment receipt / screenshot</label>
+              <div class="upload-box" onclick="document.getElementById('rcpt-input').click()">
+                <input id="rcpt-input" type="file" accept="image/*" style="display:none" onchange="App.uploadReceipt('${b.id}', this)">
+                ${icon('clock')}
+                <p style="margin:8px 0 0;">Click to upload a screenshot of your payment</p>
+              </div>
+            </div>
+          ` : ""}
+
+          ${b.receipt ? `
+            <div class="field">
+              <label>Uploaded proof of payment</label>
+              <img src="${b.receipt}" style="max-width:100%; border-radius:8px; border:1px solid var(--line);">
+            </div>
+          ` : ""}
+
+          <div style="margin-top:18px; display:flex; gap:10px;">
+            <button class="btn btn-ghost" onclick="App.go('status',{id:'${b.id}'})">Go to status page</button>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function payWithMomo(id){
+    const b = state.bookings.find(x=>x.id===id);
+    if(!b) return;
+    // simulate paystack momo flow
+    b.status = "payment_uploaded";
+    sendSMS(b.phone, `We're processing your Mobile Money payment of ${money(b.total)} via Paystack. Please also upload your receipt screenshot.`);
+    persist();
+    render();
+  }
+
+  function uploadReceipt(id, input){
+    const b = state.bookings.find(x=>x.id===id);
+    if(!b || !input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+      b.receipt = e.target.result;
+      if(b.status === "pending") b.status = "payment_uploaded";
+      sendSMS(b.phone, `Thanks — we received your payment screenshot for ${money(b.total)}. The hostel manager will confirm it shortly.`);
+      persist();
+      render();
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+
+  function stepper(status){
+    const steps = [
+      {k:"pending", l:"Pending"},
+      {k:"payment_uploaded", l:"Payment received"},
+      {k:"approved", l:"Approved"},
+      {k:"confirmed", l:"Confirmed"}
+    ];
+    const order = ["pending","payment_uploaded","approved","confirmed"];
+    const idx = status === "rejected" ? -1 : order.indexOf(status);
+    return `<div class="stepper">
+      ${steps.map((s,i)=>{
+        const done = i < idx || status==="confirmed" && i<=idx;
+        const isDone = i <= idx && status !== "rejected";
+        const isCurrent = i === idx;
+        return `<div class="step ${isDone && !isCurrent ? 'done':''} ${isCurrent?'current':''}">
+          <div class="step-dot">${isDone && !isCurrent ? '✓' : i+1}</div>
+          <div class="step-label">${s.l}</div>
+        </div>${i<steps.length-1?`<div class="step-line ${i<idx?'done':''}"></div>`:''}`;
+      }).join("")}
+    </div>
+    ${status==="rejected" ? `<div class="status-pill status-rejected" style="margin-bottom:20px;">Payment rejected — please re-upload or contact the hostel</div>`:""}
+    `;
+  }
+
+  /* ---------------------------------------------------------
+     GUEST: STATUS TRACKING
+  --------------------------------------------------------- */
+  function pageStatus(bookingId){
+    let b = bookingId ? state.bookings.find(x=>x.id===bookingId) : null;
+    if(!b){
+      return `
+      <section><div class="wrap" style="max-width:480px;">
+        <div class="section-head"><div><h2>Track my booking</h2><p>Enter the phone number you booked with.</p></div></div>
+        <div class="card">
+          <div class="field"><label>Phone number</label><input id="lookup-phone" type="tel" placeholder="024 000 0000"></div>
+          <button class="btn btn-primary btn-block" onclick="App.lookupBooking()">Find my booking</button>
+        </div>
+      </div></section>`;
+    }
+    const r = roomById(b.roomId);
+    const today = todayISO();
+    const daysLeft = b.status === "confirmed" ? daysBetween(today, b.checkOut) : null;
+    return `
+    <section>
+      <div class="wrap" style="max-width:640px;">
+        ${stepper(b.status)}
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h2 style="font-size:1.2rem;">${r?r.name:'Room'}</h2>
+              <div class="room-meta">${r?r.bedType:''}</div>
+            </div>
+            <span class="status-pill status-${b.status}">${statusLabel(b.status)}</span>
+          </div>
+          <div style="margin:18px 0; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div class="info-line"><div class="ico">${icon('clock')}</div><div><b>Check-in</b><span>${fmtDate(b.checkIn)}</span></div></div>
+            <div class="info-line"><div class="ico">${icon('clock')}</div><div><b>Check-out</b><span>${fmtDate(b.checkOut)}</span></div></div>
+          </div>
+          ${daysLeft !== null ? `
+            <div class="card" style="background:${daysLeft<=state.info.checkoutReminderDays ? 'var(--clay-soft)':'var(--pine-soft)'}; border:none;">
+              <b>${daysLeft > 0 ? `Your stay ends in ${daysLeft} day${daysLeft===1?'':'s'}` : (daysLeft===0? "Checkout is today" : "Your stay has ended")}</b>
+              <p style="margin:4px 0 0; font-size:.85rem; opacity:.8;">Checkout by ${fmtDate(b.checkOut)}, 10:00am.</p>
+            </div>
+          ` : ""}
+          ${b.status === "confirmed" ? receiptView(b, r, false) : ""}
+          ${b.status !== "confirmed" && b.status !== "rejected" ? `<button class="btn btn-ghost" style="margin-top:14px;" onclick="App.go('payment',{id:'${b.id}'})">Go to payment page</button>` : ""}
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function lookupBooking(){
+    const phone = document.getElementById("lookup-phone").value.trim();
+    const b = state.bookings.find(x => x.phone.replace(/\s/g,"") === phone.replace(/\s/g,""));
+    if(!b){ alert("No booking found for that phone number."); return; }
+    go("status",{id:b.id});
+  }
+
+  function receiptView(b, r, forManager){
+    return `
+    <div class="receipt" style="margin-top:18px; max-width:100%;">
+      <div class="receipt-head">
+        <div><h3 style="margin-bottom:2px;">${state.info.name}</h3><span style="font-size:.8rem; opacity:.6;">Payment receipt</span></div>
+        <div style="text-align:right; font-size:.8rem; opacity:.7;">${b.approvedAt?fmtDate(b.approvedAt):''}</div>
+      </div>
+      <div class="receipt-row"><span>Guest</span><span>${b.guestName}</span></div>
+      <div class="receipt-row"><span>Phone</span><span>${b.phone}</span></div>
+      <div class="receipt-row"><span>Email</span><span>${b.email||'—'}</span></div>
+      <div class="receipt-row"><span>Room</span><span>${r?r.name:''}</span></div>
+      <div class="receipt-row"><span>Check-in → Check-out</span><span>${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</span></div>
+      <div class="receipt-row"><span>Rate</span><span>${r?money(r.price)+' / '+r.period:''}</span></div>
+      <div class="receipt-total"><span>Total paid</span><span>${money(b.total)}</span></div>
+      <div style="margin-top:16px; display:flex; gap:10px;">
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">Print receipt</button>
+        ${forManager? `<button class="btn btn-ghost btn-sm" onclick="App.emailReceipt('${b.id}')">Email to guest</button>`:''}
+      </div>
+    </div>`;
+  }
+
+  /* ---------------------------------------------------------
+     MANAGER: LOGIN
+  --------------------------------------------------------- */
+  function pageManagerLogin(){
+    return `
+    <div class="login-wrap">
+      <div class="card">
+        <h2 style="font-size:1.3rem;">Manager sign in</h2>
+        <p style="opacity:.7; font-size:.9rem;">Demo passcode: <code>adom2024</code></p>
+        <div class="field"><label>Passcode</label><input id="mgr-pass" type="password" onkeydown="if(event.key==='Enter')App.tryLogin()"></div>
+        <button class="btn btn-primary btn-block" onclick="App.tryLogin()">Sign in</button>
+      </div>
+    </div>`;
+  }
+  function tryLogin(){
+    const v = document.getElementById("mgr-pass").value;
+    if(v === "adom2024"){ managerAuthed = true; go("dashboard"); }
+    else alert("Incorrect passcode. Try adom2024.");
+  }
+  function logoutManager(){ managerAuthed = false; goPortal("guest"); }
+
+  /* ---------------------------------------------------------
+     MANAGER SHELL
+  --------------------------------------------------------- */
+  function managerShell(bodyHtml){
+    const items = [
+      ["dashboard","Dashboard"],
+      ["mgr-location","Location setup"],
+      ["mgr-rooms","Room management"],
+      ["mgr-bookings","Bookings"],
+      ["mgr-residents","Residents"],
+      ["mgr-customers","Customers"],
+      ["mgr-notifications","Notifications"]
+    ];
+    return `
+    <div class="mgr-shell">
+      <div class="mgr-side">
+        ${items.map(([p,l])=>`<a class="${route.page===p?'active':''}" onclick="App.go('${p}')">${l}</a>`).join("")}
+      </div>
+      <div class="mgr-main">${bodyHtml}</div>
+    </div>`;
+  }
+
+  /* ---------------------------------------------------------
+     MANAGER: DASHBOARD
+  --------------------------------------------------------- */
+  function pageDashboard(){
+    const today = todayISO();
+    const occupiedToday = state.bookings.filter(b => b.status==="confirmed" && b.checkIn<=today && b.checkOut>=today).length;
+    const pendingPayments = state.bookings.filter(b => b.status==="payment_uploaded").length;
+    const in7 = addDays(today,7);
+    const upcomingCheckouts = state.bookings.filter(b => b.status==="confirmed" && b.checkOut>=today && b.checkOut<=in7);
+    const revenueThisMonth = state.bookings
+      .filter(b => (b.status==="confirmed"||b.status==="approved") && (b.approvedAt||"").slice(0,7) === today.slice(0,7))
+      .reduce((s,b)=>s+Number(b.total||0),0);
+    const occRate = Math.round((state.rooms.filter(r=>r.status==="occupied").length / Math.max(1,state.rooms.length))*100);
+
+    return managerShell(`
+      <h2>Dashboard</h2>
+      <div class="mgr-sub">Overview for today, ${fmtDate(today)}</div>
+      <div class="kpi-grid">
+        <div class="kpi reveal"><b data-count="${occupiedToday}">0</b><span>Occupied rooms today</span></div>
+        <div class="kpi reveal ${pendingPayments>0?'flag':''}"><b data-count="${pendingPayments}">0</b><span>Pending payments to review</span></div>
+        <div class="kpi reveal"><b data-count="${upcomingCheckouts.length}">0</b><span>Checkouts in next 7 days</span></div>
+        <div class="kpi reveal"><b>${money(revenueThisMonth)}</b><span>Revenue this month</span></div>
+        <div class="kpi reveal"><b data-count="${occRate}" data-suffix="%">0%</b><span>Occupancy rate</span></div>
+      </div>
+
+      <div class="section-head"><div><h3 style="font-size:1.1rem;">Upcoming checkouts</h3></div></div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Guest</th><th>Room</th><th>Checkout</th><th>Status</th></tr>
+          ${upcomingCheckouts.length ? upcomingCheckouts.map(b=>{
+            const r = roomById(b.roomId);
+            return `<tr><td>${b.guestName}</td><td>${r?r.name:''}</td><td>${fmtDate(b.checkOut)}</td><td><span class="status-pill status-${b.status}">${statusLabel(b.status)}</span></td></tr>`;
+          }).join("") : `<tr><td colspan="4" class="empty">No checkouts in the next 7 days.</td></tr>`}
+        </table>
+      </div>
+    `);
+  }
+
+  /* ---------------------------------------------------------
+     MANAGER: LOCATION SETUP
+  --------------------------------------------------------- */
+  function pageMgrLocation(){
+    const info = state.info;
+    return managerShell(`
+      <h2>Location setup</h2>
+      <div class="mgr-sub">This is what guests see on the Location page and homepage.</div>
+      <div class="card" style="max-width:640px;">
+        <div class="field"><label>Address</label><input id="loc-address" value="${info.address}"></div>
+        <div class="field"><label>Google Maps search text</label><input id="loc-query" value="${info.mapsQuery}">
+          <p class="hint">Used to build the "Get directions" link.</p>
+        </div>
+        <div class="field">
+          <label>Nearby landmarks</label>
+          <div id="landmark-editor">
+            ${info.landmarks.map((l,i)=>`
+              <div class="field-row" style="margin-bottom:8px;">
+                <input value="${l.name}" onchange="App.updateLandmark(${i},'name',this.value)" placeholder="Landmark name">
+                <input value="${l.distance}" onchange="App.updateLandmark(${i},'distance',this.value)" placeholder="e.g. 5 min walk">
+              </div>`).join("")}
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="App.addLandmark()">+ Add landmark</button>
+        </div>
+        <div class="field">
+          <label>Display settings</label>
+          <label style="display:flex; gap:8px; align-items:center; font-weight:400; margin-bottom:6px;"><input type="checkbox" id="show-map" ${info.showMap?'checked':''} style="width:auto;"> Show map on customer pages</label>
+          <label style="display:flex; gap:8px; align-items:center; font-weight:400; margin-bottom:6px;"><input type="checkbox" id="show-address" ${info.showAddress?'checked':''} style="width:auto;"> Show address text</label>
+          <label style="display:flex; gap:8px; align-items:center; font-weight:400;"><input type="checkbox" id="show-landmarks" ${info.showLandmarks?'checked':''} style="width:auto;"> Show nearby landmarks</label>
+        </div>
+        <button class="btn btn-primary" onclick="App.saveLocation()">Save location settings</button>
+      </div>
+    `);
+  }
+  function addLandmark(){ state.info.landmarks.push({name:"",distance:""}); persist(); render(); }
+  function updateLandmark(i,k,v){ state.info.landmarks[i][k]=v; persist(); }
+  function saveLocation(){
+    state.info.address = document.getElementById("loc-address").value;
+    state.info.mapsQuery = document.getElementById("loc-query").value;
+    state.info.showMap = document.getElementById("show-map").checked;
+    state.info.showAddress = document.getElementById("show-address").checked;
+    state.info.showLandmarks = document.getElementById("show-landmarks").checked;
+    persist();
+    alert("Location settings saved.");
+    render();
+  }
+
+  /* ---------------------------------------------------------
+     MANAGER: ROOM MANAGEMENT
+  --------------------------------------------------------- */
+  let editingRoomId = null;
+  function pageMgrRooms(){
+    return managerShell(`
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div><h2>Room management</h2><div class="mgr-sub">Add rooms, set prices, photos, and availability.</div></div>
+        <button class="btn btn-primary btn-sm" onclick="App.newRoom()">+ Add room</button>
+      </div>
+      <div class="room-grid">
+        ${state.rooms.map(r => `
+          <div class="room-card" style="cursor:default;">
+            <div class="room-photo">
+              ${r.photos && r.photos[0] ? `<img src="${r.photos[0]}">` : roomPlaceholder(r)}
+              <div class="badge ${r.status==='occupied'?'occ':''}">${r.status==='occupied'?'Occupied':'Available'}</div>
+            </div>
+            <div class="room-body">
+              <h3>${r.name}</h3>
+              <div class="room-meta">${r.bedType} · ${money(r.price)}/${r.period}</div>
+              <div style="display:flex; gap:8px; margin-top:auto;">
+                <button class="btn btn-ghost btn-sm" onclick="App.editRoom('${r.id}')">Edit</button>
+                <button class="btn btn-ghost btn-sm" onclick="App.toggleRoomStatus('${r.id}')">Mark ${r.status==='occupied'?'available':'occupied'}</button>
+              </div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+      ${editingRoomId !== null ? roomEditorModal() : ""}
+    `);
+  }
+  function newRoom(){
+    editingRoomId = "new";
+    render();
+  }
+  function editRoom(id){ editingRoomId = id; render(); }
+  function toggleRoomStatus(id){
+    const r = roomById(id);
+    r.status = r.status === "occupied" ? "available" : "occupied";
+    persist(); render();
+  }
+  function roomEditorModal(){
+    const isNew = editingRoomId === "new";
+    const r = isNew ? {name:"",bedType:"",price:"",period:"month",maxOccupants:1,description:"",photos:[]} : roomById(editingRoomId);
+    return `
+    <div class="modal-bg" onclick="if(event.target===this){App.closeRoomEditor()}">
+      <div class="modal">
+        <span class="modal-close" onclick="App.closeRoomEditor()">&times;</span>
+        <h3>${isNew?'Add room':'Edit room'}</h3>
+        <div class="field"><label>Room name</label><input id="re-name" value="${r.name}"></div>
+        <div class="field"><label>Bed type</label><input id="re-bed" value="${r.bedType}" placeholder="e.g. Bunk beds · shared room"></div>
+        <div class="field-row">
+          <div class="field"><label>Price</label><input id="re-price" type="number" value="${r.price}"></div>
+          <div class="field"><label>Billing period</label>
+            <select id="re-period">
+              <option value="night" ${r.period==='night'?'selected':''}>Per night</option>
+              <option value="month" ${r.period==='month'?'selected':''}>Per month</option>
+              <option value="year" ${r.period==='year'?'selected':''}>Per year</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Max occupants</label><input id="re-max" type="number" value="${r.maxOccupants}"></div>
+        <div class="field"><label>Description</label><textarea id="re-desc" rows="3">${r.description}</textarea></div>
+        <div class="field">
+          <label>Room photo</label>
+          <div class="upload-box" onclick="document.getElementById('re-photo').click()">
+            <input id="re-photo" type="file" accept="image/*" style="display:none" onchange="App.previewRoomPhoto(this)">
+            ${r.photos && r.photos[0] ? `<img id="re-photo-preview" src="${r.photos[0]}">` : `<p style="margin:0;">Click to upload a photo</p><img id="re-photo-preview" style="display:none;">`}
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="App.saveRoom(${isNew ? "true":"false"})">Save room</button>
+      </div>
+    </div>`;
+  }
+  let pendingPhotoData = null;
+  function previewRoomPhoto(input){
+    if(!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      pendingPhotoData = e.target.result;
+      const img = document.getElementById("re-photo-preview");
+      img.src = pendingPhotoData; img.style.display="block";
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+  function closeRoomEditor(){ editingRoomId = null; pendingPhotoData = null; render(); }
+  function saveRoom(isNew){
+    const data = {
+      name: document.getElementById("re-name").value || "Untitled room",
+      bedType: document.getElementById("re-bed").value,
+      price: Number(document.getElementById("re-price").value)||0,
+      period: document.getElementById("re-period").value,
+      maxOccupants: Number(document.getElementById("re-max").value)||1,
+      description: document.getElementById("re-desc").value
+    };
+    if(isNew){
+      state.rooms.push(Object.assign({id:uid("room"), status:"available", photos: pendingPhotoData?[pendingPhotoData]:[]}, data));
+    } else {
+      const r = roomById(editingRoomId);
+      Object.assign(r, data);
+      if(pendingPhotoData) r.photos = [pendingPhotoData];
+    }
+    persist();
+    editingRoomId = null; pendingPhotoData = null;
+    render();
+  }
+
+  /* ---------------------------------------------------------
+     MANAGER: BOOKINGS LIST + PAYMENT REVIEW
+  --------------------------------------------------------- */
+  let bookingFilters = { status:"all", room:"all" };
+  function pageMgrBookings(){
+    const filtered = state.bookings.filter(b =>
+      (bookingFilters.status === "all" || b.status === bookingFilters.status) &&
+      (bookingFilters.room === "all" || b.roomId === bookingFilters.room)
+    );
+    return managerShell(`
+      <h2>Bookings &amp; reservations</h2>
+      <div class="mgr-sub">${state.bookings.length} total bookings.</div>
+      <div class="filter-row">
+        <select onchange="App.setBookingFilter('status', this.value)">
+          <option value="all">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="payment_uploaded">Payment received</option>
+          <option value="approved">Approved</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select onchange="App.setBookingFilter('room', this.value)">
+          <option value="all">All rooms</option>
+          ${state.rooms.map(r=>`<option value="${r.id}">${r.name}</option>`).join("")}
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Total</th><th>Status</th><th></th></tr>
+          ${filtered.length ? filtered.map(b=>{
+            const r = roomById(b.roomId);
+            return `<tr>
+              <td>${b.guestName}${b.status==='payment_uploaded'?'<span class="badge-flag">review</span>':''}</td>
+              <td>${r?r.name:''}</td>
+              <td>${fmtDate(b.checkIn)}</td>
+              <td>${fmtDate(b.checkOut)}</td>
+              <td>${money(b.total)}</td>
+              <td><span class="status-pill status-${b.status}">${statusLabel(b.status)}</span></td>
+              <td><button class="btn btn-ghost btn-sm" onclick="App.openBookingReview('${b.id}')">Open</button></td>
+            </tr>`;
+          }).join("") : `<tr><td colspan="7" class="empty">No bookings match these filters.</td></tr>`}
+        </table>
+      </div>
+      ${reviewModalId ? bookingReviewModal() : ""}
+    `);
+  }
+  function setBookingFilter(k,v){ bookingFilters[k]=v; render(); }
+  let reviewModalId = null;
+  function openBookingReview(id){ reviewModalId = id; render(); }
+  function closeBookingReview(){ reviewModalId = null; render(); }
+  function bookingReviewModal(){
+    const b = state.bookings.find(x=>x.id===reviewModalId);
+    if(!b) return "";
+    const r = roomById(b.roomId);
+    return `
+    <div class="modal-bg" onclick="if(event.target===this){App.closeBookingReview()}">
+      <div class="modal">
+        <span class="modal-close" onclick="App.closeBookingReview()">&times;</span>
+        <h3>${b.guestName} — ${r?r.name:''}</h3>
+        <span class="status-pill status-${b.status}">${statusLabel(b.status)}</span>
+        <div style="margin:16px 0;">
+          <div class="receipt-row"><span>Phone</span><span>${b.phone}</span></div>
+          <div class="receipt-row"><span>Email</span><span>${b.email||'—'}</span></div>
+          <div class="receipt-row"><span>Dates</span><span>${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</span></div>
+          <div class="receipt-row"><span>Total</span><span>${money(b.total)}</span></div>
+        </div>
+        ${b.receipt ? `<div class="field"><label>Payment screenshot</label><img src="${b.receipt}" style="max-width:100%; border-radius:8px; border:1px solid var(--line);"></div>` : `<p class="hint">No payment screenshot uploaded yet.</p>`}
+        <div class="field"><label>Manager notes</label><textarea id="review-notes" rows="2">${b.notes||''}</textarea></div>
+        ${b.status === "payment_uploaded" ? `
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <button class="btn btn-pine" onclick="App.approvePayment('${b.id}')">Accept payment</button>
+            <button class="btn btn-danger" onclick="App.rejectPayment('${b.id}')">Reject payment</button>
+          </div>
+        `: ""}
+        ${b.status === "approved" ? `<button class="btn btn-primary" style="margin-top:10px;" onclick="App.confirmStay('${b.id}')">Confirm stay &amp; assign room</button>` : ""}
+        ${b.status === "confirmed" ? receiptView(b, r, true) : ""}
+      </div>
+    </div>`;
+  }
+  function approvePayment(id){
+    const b = state.bookings.find(x=>x.id===id);
+    b.notes = document.getElementById("review-notes").value;
+    b.status = "approved";
+    b.approvedAt = todayISO();
+    sendSMS(b.phone, `Your payment of ${money(b.total)} has been accepted. We're finalising your booking now.`);
+    persist();
+    render();
+  }
+  function rejectPayment(id){
+    const b = state.bookings.find(x=>x.id===id);
+    b.notes = document.getElementById("review-notes").value;
+    b.status = "rejected";
+    sendSMS(b.phone, `We couldn't verify your payment screenshot. Please re-upload a clear receipt or contact the front desk.`);
+    persist();
+    render();
+  }
+  function confirmStay(id){
+    const b = state.bookings.find(x=>x.id===id);
+    b.status = "confirmed";
+    const r = roomById(b.roomId);
+    if(r) r.status = "occupied";
+    sendSMS(b.phone, `Receipt generated. Your stay at ${r?r.name:''} is confirmed: ${fmtDate(b.checkIn)} to ${fmtDate(b.checkOut)}. Welcome!`);
+    persist();
+    render();
+  }
+  function emailReceipt(id){
+    const b = state.bookings.find(x=>x.id===id);
+    alert("Receipt emailed to " + (b.email || "guest") + " (simulated — connect an email service to send for real).");
+  }
+
+  /* ---------------------------------------------------------
+     MANAGER: RESIDENTS
+  --------------------------------------------------------- */
+  function pageMgrResidents(){
+    const residents = state.bookings.filter(b=>b.status==="confirmed");
+    return managerShell(`
+      <h2>Resident management</h2>
+      <div class="mgr-sub">Everyone currently checked in.</div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Resident</th><th>Room</th><th>Check-out</th><th>Payment status</th></tr>
+          ${residents.length ? residents.map(b=>{
+            const r = roomById(b.roomId);
+            return `<tr><td>${b.guestName}</td><td>${r?r.name:''}</td><td>${fmtDate(b.checkOut)}</td><td><span class="status-pill status-confirmed">Paid</span></td></tr>`;
+          }).join("") : `<tr><td colspan="4" class="empty">No current residents yet.</td></tr>`}
+        </table>
+      </div>
+    `);
+  }
+
+  /* ---------------------------------------------------------
+     MANAGER: CUSTOMERS
+  --------------------------------------------------------- */
+  function pageMgrCustomers(){
+    const byPhone = {};
+    state.bookings.forEach(b=>{
+      if(!byPhone[b.phone]) byPhone[b.phone] = {name:b.guestName, phone:b.phone, email:b.email, count:0, lastRoom:""};
+      byPhone[b.phone].count++;
+      byPhone[b.phone].lastRoom = roomById(b.roomId)?.name || "";
+    });
+    const list = Object.values(byPhone);
+    return managerShell(`
+      <h2>Customer management</h2>
+      <div class="mgr-sub">Guest history across all bookings.</div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Name</th><th>Phone</th><th>Email</th><th>Bookings</th><th>Last room</th></tr>
+          ${list.length ? list.map(c=>`
+            <tr><td>${c.name}${c.count>1?'<span class="badge-flag">repeat</span>':''}</td><td>${c.phone}</td><td>${c.email||'—'}</td><td>${c.count}</td><td>${c.lastRoom}</td></tr>
+          `).join("") : `<tr><td colspan="5" class="empty">No customers yet.</td></tr>`}
+        </table>
+      </div>
+    `);
+  }
+
+  /* ---------------------------------------------------------
+     MANAGER: NOTIFICATIONS LOG
+  --------------------------------------------------------- */
+  function pageMgrNotifications(){
+    return managerShell(`
+      <h2>Notifications &amp; alerts</h2>
+      <div class="mgr-sub">Simulated SMS log — in a live deployment this connects to an SMS gateway (e.g. Hubtel, Twilio).</div>
+      <div class="card">
+        <div class="sms-log">
+          ${state.smsLog.length ? state.smsLog.map(s=>`
+            <div class="sms-item"><b>TO ${s.to} · ${new Date(s.at).toLocaleString()}</b>${s.body}</div>
+          `).join("") : `<div class="empty">No messages sent yet.</div>`}
+        </div>
+      </div>
+    `);
+  }
+
+  /* ---------------------------------------------------------
+     RENDER / ROUTER TABLE
+  --------------------------------------------------------- */
+  function render(){
+    const app = document.getElementById("app");
+    let body = "";
+    if(route.portal === "manager" && !managerAuthed && route.page !== "login"){
+      route.page = "login";
+    }
+    switch(route.page){
+      case "home": body = pageHome(); break;
+      case "rooms": body = pageRooms(); break;
+      case "room": body = pageRoomDetail(route.params.id); break;
+      case "location": body = pageLocation(); break;
+      case "booking": body = pageBooking(route.params.id); break;
+      case "payment": body = pagePayment(route.params.id); break;
+      case "status": body = pageStatus(route.params.id); break;
+      case "login": body = pageManagerLogin(); break;
+      case "dashboard": body = pageDashboard(); break;
+      case "mgr-location": body = pageMgrLocation(); break;
+      case "mgr-rooms": body = pageMgrRooms(); break;
+      case "mgr-bookings": body = pageMgrBookings(); break;
+      case "mgr-residents": body = pageMgrResidents(); break;
+      case "mgr-customers": body = pageMgrCustomers(); break;
+      case "mgr-notifications": body = pageMgrNotifications(); break;
+      default: body = pageHome();
+    }
+    const foot = route.portal === "guest" ? renderFooter() : "";
+    app.innerHTML = `<div class="scroll-progress" id="scroll-progress"></div>` + topbar() + `<div id="page-content">` + body + foot + `</div>`;
+
+    syncOnScroll();
+    setupReveals();
+    animateCounters();
+    setupTilt();
+
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        const pc = document.getElementById("page-content");
+        if(pc) pc.classList.add("page-fade-in");
+      });
+    });
+  }
+
+  /* ---- scroll-driven topbar, progress bar, hero parallax ---- */
+  function syncOnScroll(){
+    const y = window.scrollY;
+    const tb = document.querySelector(".topbar");
+    if(tb) tb.classList.toggle("scrolled", y > 8);
+
+    const doc = document.documentElement;
+    const max = doc.scrollHeight - doc.clientHeight;
+    const bar = document.getElementById("scroll-progress");
+    if(bar) bar.style.width = (max > 0 ? Math.min(100, (y / max) * 100) : 0) + "%";
+
+    const heroWrap = document.querySelector(".hero-panel");
+    if(heroWrap){
+      if(y < 480){
+        heroWrap.style.transform = `translateY(${(y * 0.18).toFixed(1)}px)`;
+        heroWrap.style.opacity = Math.max(1 - y / 420, 0).toFixed(2);
+      } else {
+        heroWrap.style.opacity = "0";
+      }
+    }
+  }
+  window.addEventListener("scroll", syncOnScroll, {passive:true});
+  window.addEventListener("resize", syncOnScroll);
+
+  /* ---- reveal-on-scroll (plays the transition even for content already on screen) ---- */
+  let revealObserver = null;
+  function setupReveals(){
+    if(revealObserver) revealObserver.disconnect();
+    revealObserver = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          entry.target.classList.add("in-view");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, {threshold:0.12, rootMargin:"0px 0px -40px 0px"});
+
+    const els = document.querySelectorAll(".reveal, .reveal-scale");
+    const inViewport = [], offscreen = [];
+    els.forEach(el=>{
+      const rect = el.getBoundingClientRect();
+      (rect.top < window.innerHeight && rect.bottom > 0 ? inViewport : offscreen).push(el);
+    });
+    offscreen.forEach(el => revealObserver.observe(el));
+    // force a layout flush, then reveal on-screen elements next frame so the transition actually plays
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        inViewport.forEach(el => el.classList.add("in-view"));
+      });
+    });
+  }
+
+  /* ---- subtle 3D tilt on room cards, following the cursor ---- */
+  let tiltBound = false;
+  function setupTilt(){
+    if(tiltBound) return;
+    tiltBound = true;
+    let activeCard = null;
+    document.addEventListener("mousemove", (e)=>{
+      const card = e.target.closest ? e.target.closest(".room-card") : null;
+      if(card !== activeCard && activeCard){
+        activeCard.style.transform = "";
+      }
+      activeCard = card;
+      if(!card) return;
+      const rect = card.getBoundingClientRect();
+      const relX = (e.clientX - rect.left) / rect.width - 0.5;
+      const relY = (e.clientY - rect.top) / rect.height - 0.5;
+      card.style.transform = `perspective(700px) rotateX(${(-relY * 5).toFixed(2)}deg) rotateY(${(relX * 7).toFixed(2)}deg) translateY(-4px)`;
+    }, {passive:true});
+    document.addEventListener("mouseleave", ()=>{
+      if(activeCard){ activeCard.style.transform = ""; activeCard = null; }
+    }, true);
+  }
+
+  /* ---- animated number counters ---- */
+  function animateCounters(){
+    document.querySelectorAll("[data-count]").forEach(el=>{
+      const target = Number(el.dataset.count);
+      if(isNaN(target)) return;
+      const suffix = el.dataset.suffix || "";
+      const duration = 650;
+      const startTime = performance.now();
+      function step(now){
+        const p = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(eased * target).toLocaleString() + suffix;
+        if(p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  /* ---------------------------------------------------------
+     PUBLIC API
+  --------------------------------------------------------- */
+  function scrollCarousel(dir){
+    const el = document.getElementById("featured-carousel");
+    if(!el) return;
+    el.scrollBy({left: dir * 290, behavior: "smooth"});
+  }
+
+  window.App = {
+    go, goPortal, startBooking, updateDraft, submitBooking,
+    payWithMomo, uploadReceipt, lookupBooking,
+    tryLogin, logoutManager,
+    addLandmark, updateLandmark, saveLocation,
+    newRoom, editRoom, toggleRoomStatus, closeRoomEditor, previewRoomPhoto, saveRoom,
+    setBookingFilter, openBookingReview, closeBookingReview, approvePayment, rejectPayment, confirmStay, emailReceipt,
+    scrollCarousel
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
